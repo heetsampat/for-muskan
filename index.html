@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>For My Favorite Person</title>
@@ -370,6 +373,19 @@
     }
 
     window.onload = () => { displayLove(); updateCounter(); startSlider(); setInterval(updateTimer, 1000); updateTimer(); };
+    // Function to set the red notification dot
+async function showBadge() {
+    if ('setAppBadge' in navigator) {
+        try {
+            await navigator.setAppBadge(1); // This shows the '1'
+        } catch (e) { console.log("Badge error", e); }
+    }
+}
+
+// Run the badge function when the page loads
+window.addEventListener('load', () => {
+    showBadge();
+});
 </script>
 <div class="decor" style="top: 10%; right: 40%; font-size: 2rem;">🌸</div>
 <div class="decor" style="top: 45%; left: 2%; font-size: 1.5rem;">💖</div>
