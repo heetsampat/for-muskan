@@ -386,6 +386,9 @@ async function showBadge() {
 window.addEventListener('load', () => {
     showBadge();
 });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 </script>
 <div class="decor" style="top: 10%; right: 40%; font-size: 2rem;">🌸</div>
 <div class="decor" style="top: 45%; left: 2%; font-size: 1.5rem;">💖</div>
