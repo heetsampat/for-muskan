@@ -9,6 +9,24 @@
     <title>For My Favorite Person</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
+        .notification-dot {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
         /* Styling for the floating burst hearts */
         .burst-heart { 
              position: fixed; 
@@ -160,6 +178,10 @@
             <div id="vault-list"></div>
         </div>
     </div>
+    <button style="position: relative;">
+    Love Vault
+    <span class="notification-dot">1</span>
+</button>
 
     <div id="quiz-overlay" class="overlay">
         <div class="overlay-card">
