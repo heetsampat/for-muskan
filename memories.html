@@ -14,14 +14,12 @@
 
         h1 { color: #ff4d6d; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 30px; text-align: center; }
 
-        /* The Grid */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 25px; width: 90%; max-width: 1000px;
         }
 
-        /* Polaroid Style */
         .polaroid {
             background: white; padding: 15px 15px 40px 15px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
@@ -32,19 +30,14 @@
         .polaroid:hover { transform: scale(1.05) rotate(2deg); z-index: 5; }
         
         .polaroid img { 
-            width: 100%; 
-            height: auto; /* Changed from 200px to auto */
-            max-height: 300px; /* Limits height so long photos don't look huge */
-            object-fit: contain; /* This ensures the WHOLE photo fits inside the box */
-            background: #f9f9f9; /* Adds a light background if the photo is thin */
-            border-radius: 2px; 
-}
+            width: 100%; height: auto; max-height: 300px; 
+            object-fit: contain; background: #f9f9f9; border-radius: 2px; 
+        }
         
         .polaroid-text {
             text-align: center; color: #555; font-weight: bold; margin-top: 15px; font-size: 0.9rem;
         }
 
-        /* Modal (The Box) */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
@@ -62,22 +55,19 @@
         textarea {
             width: 100%; height: 100px; border: 2px solid #ffdde1; border-radius: 15px;
             padding: 10px; font-family: inherit; resize: none; box-sizing: border-box;
+            margin-bottom: 10px;
         }
         .send-btn {
-            background: #25d366; color: white; border: none; padding: 12px 20px;
-            border-radius: 25px; font-weight: bold; margin-top: 15px; cursor: pointer;
+            background: #ff4d6d; color: white; border: none; padding: 12px 20px;
+            border-radius: 25px; font-weight: bold; margin-top: 5px; cursor: pointer;
             width: 100%; transition: 0.3s;
         }
-        .send-btn:hover { background: #128c7e; }
+        .send-btn:hover { background: #e63958; }
 
         .back-btn { margin-bottom: 20px; text-decoration: none; color: #ff4d6d; font-weight: bold; border: 1px solid #ff4d6d; padding: 10px 20px; border-radius: 20px; }
         #m-image-container img {
-            width: 100%;
-            max-height: 400px; /* Keeps it from taking up the whole screen */
-            object-fit: contain; /* Ensures no cropping in the popup */
-            margin-bottom: 20px;
-            border-radius: 10px;
-}
+            width: 100%; max-height: 400px; object-fit: contain; margin-bottom: 20px; border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -85,8 +75,7 @@
     <a href="index.html" class="back-btn">← Back to Main Page</a>
     <h1>✨ Our Memory Lane ✨</h1>
 
-    <div class="gallery" id="gallery">
-        </div>
+    <div class="gallery" id="gallery"></div>
 
     <div class="modal" id="memoryModal">
         <div class="modal-content">
@@ -97,125 +86,113 @@
             <p><strong>My Version of this day:</strong></p>
             <div class="heet-version" id="heet-text"></div>
 
-            <p><strong>Your Version:</strong></p>
+            <p><strong>Muskan's Version:</strong></p>
             <textarea id="muskan-input" placeholder="What do you remember about this day, baby?"></textarea>
-            <button class="send-btn" onclick="sendToHeet()">Send Version to Heet ❤️</button>
+            
+            <button class="send-btn" onclick="saveSharedMemory()">Save to our website ❤️</button>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        // ADD YOUR MEMORIES HERE
+        // 2. Initialize Supabase
+        const _supabaseUrl = 'https://bekmiacmzkljxwchprca.supabase.co';
+        const _supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJla21pYWNtemtsanh3Y2hwcmNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMTcyNDEsImV4cCI6MjA4Njc5MzI0MX0.gS8BsuonGuQuJqDjO_3x0xsQiygyjduiJ9lkJFvFn7I';
+        
+        // Correcting the initialization conflict
+        const db = supabase.createClient(_supabaseUrl, _supabaseKey);
+
+        // 3. Memories Array
         const memories = [
-            { 
-                title: "Our First Picture Together", 
-                image: "memory1.jpeg", 
-                heetVersion: "I remember that day so well. The way you smiled at the camera, the way your eyes sparkled... I felt like I was looking at a dream come true. Hum chowpatty jaa ke beth gye the and logo ko judge kar rhe the, It was so fun." 
-            },
-            { 
-                title: "The first time i got a LETTER from you", 
-                image: "memory2.jpeg", 
-                heetVersion: "I remember that letter so well. The way you wrote, the way you expressed your feelings... I felt so happy and loved. It was like a gift from heaven. Ek free kiss coupon bhi tha usme shayad? WOW I just loved it so much." 
-            },
-            { 
-                title: "My favourite shirt day", 
-                image: "memory3.jpeg", 
-                heetVersion: "Babyyyyyyyy, that shirt... its so fucking hot on you. I remember that day so well. The way you looked at me, the way you smiled... I felt like the luckiest person in the world.Hum pehle burger king me bethe the, bachho ko judge kar rahe the and then we went to a park. I just wanted to stare at you all day. You looked so handsome and sexy in that shirt. Hey also dont forget ke tune mere chashme guna diye the lol." 
-            },
-            { 
-                title: "The day you accepted my proposal", 
-                image: "memory4.jpeg", 
-                heetVersion: "I remember that day so well. The way you said yes, the way you hugged me... I felt like I was on top of the world. It was the happiest moment of my life. Hum log ek park me the, aur tune mujhe propose kiya tha. I just wanted to hold you and never let go. That day was truly magical.It was so unexpected, I came thinking it was yet another normal day when we will meet. But the note you gave in mcd was a surprise, probably the best surprise of my life. I just wanted to cry and laugh at the same time. It was so beautiful and romantic, I will never forget that day. I love you so much, baby. You are my everything." 
-            },{ 
-                title: "Our day out with Aarushi", 
-                image: "memory5.jpeg", 
-                heetVersion: " It was a perfect day. We went to a cafe and had so much fun together. Us sitting at marine drive, talking about everything and nothing, it was so special. Aarushi ai and then hum khane gye desserts, it was fun"
-            },{ 
-                title: "Iskon date", 
-                image: "memory6.jpeg", 
-                heetVersion: "Ye din bhi mujhe yaad hai, hum dono iskon gye the... it was my wish to go to a mandir tere saath. Then thoda sa tu gussa  ho gyi thi(i still dont know why) but mene manaya tujhe and then aage ka din just felt magical" 
-            },{ 
-                title: "Our first trek together", 
-                image: "memory7.jpeg", 
-                heetVersion: "That trek was so much fun. We were surrounded by nature, the fresh air, the beautiful views... it was like a dream.Thoda sa your sister fucked up the mood towards the end but ehh theeke theeke chalta hai. We both had fun, those unexpected stops we took,hehe.... lets do that again sometime soon, baby. I just love being with you, no matter where we are or what we're doing. You make every moment special and unforgettable." 
-            },{ 
-                title: "Ganpati pandal hopping", 
-                image: "memory8.jpeg", 
-                heetVersion: "Baby, our 1st time going to ganpati pandals.. ye din yaad hai mujhe. We went to jessicas place 1st and then we went  to different pandals. You know the best part? We got greaaattttt pictures that dayy. Mene bappa se kuch maanga tha, and mujhe woh complete hota hua dikh raha hai." 
-            },{ 
-                title: "Happy birthday Muskan-2025", 
-                image: "memory9.jpeg", 
-                heetVersion: "Your birthday celebration together... Bouquet of flowers, lot of smiles, laughter and A CAULIFLOWER. Us din ke baad nhi dunga ajeeb sa gift hehehehehee" 
-            },{ 
-                title: "Our 1st Diwali together", 
-                image: "memory10.jpeg", 
-                heetVersion: "Bhai this is one of those days jo me toh kabhi nhi bhul sakta. Diwali ke din ki ladai, hehehehe. damn. But regardless of that baby You looked very very pretty that day and meeting your friends was fun baby. We got very nice pics that day. Tbh that was the most eventful diwali of my life." 
-            },
-            { 
-                title: "Double date?-saree day", 
-                image: "memory11.jpeg", 
-                heetVersion: "Babe, Muskan, CUTIEEEEEEEEEEEEE. FUCKKKKKKKKKK. This is one of those  days jo me life me nahi bhulne vala hu. That was the day i saw you in a saree for the first time. And I couldnt get my eyes off you. here were so many people there but fuckk, yoou looked so gorjes. Ekdum swarg se utri hui kokil kanthi apsara lag rahi thi. And the our date at that cafe with anushka and om. It was good getting to know your friends. But you looking so pretty in that saree was the highlight of the day. We next went to that park and vaha bhi bohot maza kiya,, sundar sundar pictures liye humne. WOW" 
-            },{ 
-                title: "IMAGICAAAA!!!!!!", 
-                image: "memory12.jpeg", 
-                heetVersion: "Our first whole day together.Hum subah jaldi uthe, Thane pee mile and then IMAGICA gyee....... BHAIII BABYYYY jo fun kiya hai us din. Bohot maza aya. It was a  great day together. You being scared inn nitro, long lines,crazy school kids, and me being there to hold your hand and make you feel safe, it was so special. I just love being with you, no matter where we are or what we're doing. You make every moment special and unforgettable." 
-            },{ 
-                title: "Valentines proposal", 
-                image: "memory13.jpeg", 
-                heetVersion: "I dont wanna talk much about this day, because it was just so perfect and magical. But I will say this, that was not the most romantic proposal ever, and not the last one for sure. I took you to that beautiful place, took your hand in my hand, and you asked me to be yours forever.... asked you to be my valentine this year, and haaa bola tuneeeeee yayyyy!!!!!!. I felt like I was in a fairy tale. It was the happiest moment of my life. I love you so much, baby. You are my everything." 
-            },
-            { 
-                title: "Valentines Date", 
-                image: "memory14.jpeg", 
-                heetVersion: "One of the best dates we have been on baby. Nothing too special about the day ig. We went to a normal cafe, had normal food, gave normal gifts to each other. But there was something special about that day for sure. Baby, I learned one thing today, that memories in out hearts and are far greater than memories saved in our phones. I lost all the pictures we clicked today but I remember each and every thing we did aaj, LOUD AND CLEAR. From having mid pasta at that cafe to judging couples at the beach, going to my place just to CHILL but ending up having a smokin hot makeout session, and then just lying there in each others arms.That was the best part. This day was fucking awesome, YOU are fucking awesome. Thank you so much for coming in my life baby. I LOVE YOU SO MUCH. " 
-            },
-            // Add more memories here in the same format
+            { title: "Our First Picture Together", image: "memory1.jpeg", heetVersion: "I remember that day so well. The way you smiled at the camera, the way your eyes sparkled... I felt like I was looking at a dream come true. Hum chowpatty jaa ke beth gye the and logo ko judge kar rhe the, It was so fun." },
+            { title: "The first time i got a LETTER from you", image: "memory2.jpeg", heetVersion: "I remember that letter so well. The way you wrote, the way you expressed your feelings... I felt so happy and loved. It was like a gift from heaven. Ek free kiss coupon bhi tha usme shayad? WOW I just loved it so much." },
+            { title: "My favourite shirt day", image: "memory3.jpeg", heetVersion: "Babyyyyyyyy, that shirt... its so fucking hot on you. I remember that day so well. The way you looked at me, the way you smiled... I felt like the luckiest person in the world.Hum pehle burger king me bethe the, bachho ko judge kar rahe the and then we went to a park. I just wanted to stare at you all day. You looked so handsome and sexy in that shirt. Hey also dont forget ke tune mere chashme guna diye the lol." },
+            { title: "The day you accepted my proposal", image: "memory4.jpeg", heetVersion: "I remember that day so well. The way you said yes, the way you hugged me... I felt like I was on top of the world. It was the happiest moment of my life. Hum log ek park me the, aur tune mujhe propose kiya tha. I just wanted to hold you and never let go. That day was truly magical.It was so unexpected, I came thinking it was yet another normal day when we will meet. But the note you gave in mcd was a surprise, probably the best surprise of my life. I just wanted to cry and laugh at the same time. It was so beautiful and romantic, I will never forget that day. I love you so much, baby. You are my everything." },
+            { title: "Our day out with Aarushi", image: "memory5.jpeg", heetVersion: " It was a perfect day. We went to a cafe and had so much fun together. Us sitting at marine drive, talking about everything and nothing, it was so special. Aarushi ai and then hum khane gye desserts, it was fun" },
+            { title: "Iskon date", image: "memory6.jpeg", heetVersion: "Ye din bhi mujhe yaad hai, hum dono iskon gye the... it was my wish to go to a mandir tere saath. Then thoda sa tu gussa ho gyi thi(i still dont know why) but mene manaya tujhe and then aage ka din just felt magical" },
+            { title: "Our first trek together", image: "memory7.jpeg", heetVersion: "That trek was so much fun. We were surrounded by nature, the fresh air, the beautiful views... it was like a dream.Thoda sa your sister fucked up the mood towards the end but ehh theeke theeke chalta hai. We both had fun, those unexpected stops we took,hehe.... lets do that again sometime soon, baby. I just love being with you, no matter where we are or what we're doing. You make every moment special and unforgettable." },
+            { title: "Ganpati pandal hopping", image: "memory8.jpeg", heetVersion: "Baby, our 1st time going to ganpati pandals.. ye din yaad hai mujhe. We went to jessicas place 1st and then we went to different pandals. You know the best part? We got greaaattttt pictures that dayy. Mene bappa se kuch maanga tha, and mujhe woh complete hota hua dikh raha hai." },
+            { title: "Happy birthday Muskan-2025", image: "memory9.jpeg", heetVersion: "Your birthday celebration together... Bouquet of flowers, lot of smiles, laughter and A CAULIFLOWER. Us din ke baad nhi dunga ajeeb sa gift hehehehehee" },
+            { title: "Our 1st Diwali together", image: "memory10.jpeg", heetVersion: "Bhai this is one of those days jo me toh kabhi nhi bhul sakta. Diwali ke din ki ladai, hehehehe. damn. But regardless of that baby You looked very very pretty that day and meeting your friends was fun baby. We got very nice pics that day. Tbh that was the most eventful diwali of my life." },
+            { title: "Double date?-saree day", image: "memory11.jpeg", heetVersion: "Babe, Muskan, CUTIEEEEEEEEEEEEE. FUCKKKKKKKKKK. This is one of those days jo me life me nahi bhulne vala hu. That was the day i saw you in a saree for the first time. And I couldnt get my eyes off you. here were so many people there but fuckk, yoou looked so gorjes. Ekdum swarg se utri hui kokil kanthi apsara lag rahi thi. And the our date at that cafe with anushka and om. It was good getting to know your friends. But you looking so pretty in that saree was the highlight of the day. We next went to that park and vaha bhi bohot maza kiya,, sundar sundar pictures liye humne. WOW" },
+            { title: "IMAGICAAAA!!!!!!", image: "memory12.jpeg", heetVersion: "Our first whole day together.Hum subah jaldi uthe, Thane pee mile and then IMAGICA gyee....... BHAIII BABYYYY jo fun kiya hai us din. Bohot maza aya. It was a great day together. You being scared inn nitro, long lines,crazy school kids, and me being there to hold your hand and make you feel safe, it was so special. I just love being with you, no matter where we are or what we're doing. You make every moment special and unforgettable." },
+            { title: "Valentines proposal", image: "memory13.jpeg", heetVersion: "I dont wanna talk much about this day, because it was just so perfect and magical. But I will say this, that was not the most romantic proposal ever, and not the last one for sure. I took you to that beautiful place, took your hand in my hand, and you asked me to be yours forever.... asked you to be my valentine this year, and haaa bola tuneeeeee yayyyy!!!!!!. I felt like I was in a fairy tale. It was the happiest moment of my life. I love you so much, baby. You are my everything." },
+            { title: "Valentines Date", image: "memory14.jpeg", heetVersion: "One of the best dates we have been on baby. Nothing too special about the day ig. We went to a normal cafe, had normal food, gave normal gifts to each other. But there was something special about that day for sure. Baby, I learned one thing today, that memories in out hearts and are far greater than memories saved in our phones. I lost all the pictures we clicked today but I remember each and every thing we did aaj, LOUD AND CLEAR. From having mid pasta at that cafe to judging couples at the beach, going to my place just to CHILL but ending up having a smokin hot makeout session, and then just lying there in each others arms.That was the best part. This day was fucking awesome, YOU are fucking awesome. Thank you so much for coming in my life baby. I LOVE YOU SO MUCH. " }
         ];
 
         const gallery = document.getElementById('gallery');
         let currentMemoryIndex = null;
 
-        // Generate Gallery
+        // 4. Build Gallery Grid
         memories.forEach((mem, index) => {
             const div = document.createElement('div');
             div.className = 'polaroid';
             div.onclick = () => openModal(index);
+            // Added onerror to show a placeholder if image doesn't exist
             div.innerHTML = `
-                <img src="${mem.image}" alt="Memory">
+                <img src="${mem.image}" alt="Memory" onerror="this.src='https://via.placeholder.com/300x250?text=Photo+Not+Found'">
                 <div class="polaroid-text">${mem.title}</div>
             `;
             gallery.appendChild(div);
         });
 
-       function openModal(index) {
-    currentMemoryIndex = index;
-    const mem = memories[index];
-    document.getElementById('m-title').innerText = mem.title;
-    document.getElementById('heet-text').innerText = mem.heetVersion;
-    
-    // This line adds the image to the popup
-    document.getElementById('m-image-container').innerHTML = `<img src="${mem.image}">`;
-    
-    document.getElementById('muskan-input').value = ""; 
-    document.getElementById('memoryModal').style.display = 'flex';
-}
+        // 5. Open Modal & Load Text
+        async function openModal(index) {
+            currentMemoryIndex = index;
+            const mem = memories[index];
+            
+            // Set basic content
+            document.getElementById('m-title').innerText = mem.title;
+            document.getElementById('heet-text').innerText = mem.heetVersion;
+            document.getElementById('m-image-container').innerHTML = `<img src="${mem.image}" onerror="this.src='https://via.placeholder.com/600x400?text=Photo+Not+Found'">`;
+            
+            // Reset input and show loading
+            document.getElementById('muskan-input').value = "Checking for memories...";
+            document.getElementById('memoryModal').style.display = 'flex';
 
+            // Fetch from Supabase
+            try {
+                const { data, error } = await db
+                    .from('memories')
+                    .select('content')
+                    .eq('memory_id', mem.title)
+                    .maybeSingle();
+
+                if (error) throw error;
+                document.getElementById('muskan-input').value = data ? data.content : "";
+            } catch (err) {
+                console.log("Database load error:", err);
+                document.getElementById('muskan-input').value = ""; // Default empty if not found
+            }
+        }
+
+        // 6. Save Text to Supabase
+        async function saveSharedMemory() {
+            if (currentMemoryIndex === null) return;
+            const mem = memories[currentMemoryIndex];
+            const text = document.getElementById('muskan-input').value;
+
+            try {
+                const { error } = await db
+                    .from('memories')
+                    .upsert({ memory_id: mem.title, content: text });
+
+                if (!error) {
+                    alert("Saved to our website! ❤️");
+                } else {
+                    alert("Error saving: " + error.message);
+                }
+            } catch (err) {
+                alert("Database connection failed.");
+            }
+        }
+
+        // 7. Modal Controls
         function closeModal() {
             document.getElementById('memoryModal').style.display = 'none';
         }
 
-        function sendToHeet() {
-            const mem = memories[currentMemoryIndex];
-            const herText = document.getElementById('muskan-input').value;
-            if(!herText) return alert("Write something first, baby! ❤️");
-
-            const phone = "919372632277"; // Your phone number
-            const message = `Hey Heet! My version of "${mem.title}": ${herText}`;
-            const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-            
-            window.open(whatsappUrl, '_blank');
-        }
-
-        // Close modal if clicking outside content
         window.onclick = function(event) {
             if (event.target == document.getElementById('memoryModal')) {
                 closeModal();
