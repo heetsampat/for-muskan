@@ -1,484 +1,548 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For My Favorite Person</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <style>
-       .notification-dot {
-    display: none; /* Hidden by default, JS will show it if needed */
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: red;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 10px;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
-}
-        /* Styling for the floating burst hearts */
-        .burst-heart { 
-             position: fixed; 
-    color: #ff4d6d; 
-    font-size: 1.5rem; 
-    pointer-events: none; 
-    z-index: 9999; 
-    user-select: none;
-    animation: fly-away 0.8s ease-out forwards; 
-}
-
-@keyframes fly-away { 
-    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 
-    100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2); opacity: 0; } 
-}
-
-/* Optional: Add this class to your .card to make the whole card "throb" slightly like a heartbeat */
-.card {
-    animation: heart-throb 4s ease-in-out infinite;
-}
-
-@keyframes heart-throb {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
-}
-        body { 
-            margin: 0; padding: 0; min-height: 100vh; 
-            background: linear-gradient(135deg, #fff0f3 0%, #ffdde1 100%); 
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
-            font-family: sans-serif; overflow-x: hidden; position: relative; 
-            padding-top: 50px; padding-bottom: 100px;
-        }
-
-        .anniversary-timer {
-            position: fixed; top: 20px; right: 20px;
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(5px);
-            padding: 10px 15px; border-radius: 15px; border: 1px solid rgba(255, 77, 109, 0.3);
-            text-align: center; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .timer-label { font-size: 0.6rem; color: #ff4d6d; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-        .timer-countdown { font-family: monospace; font-size: 0.9rem; color: #333; font-weight: bold; }
-
-        .card {
-            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
-            padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            width: 85%; max-width: 380px; z-index: 10; border: 1px solid rgba(255, 255, 255, 0.4);
-            display: flex; flex-direction: column; align-items: center;
-            height: auto; max-height: 75vh; overflow-y: auto; margin-top: 40px; position: relative; 
-            scroll-behavior: smooth;
-            white-space: pre-line;
-        }
-
-        h1 { color: #ff4d6d; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem; text-align: center; }
-        #compliment { color: #1a1a1a; font-size: 1rem; font-weight: 500; line-height: 1.6; margin: 20px 0; width: 100%; text-align: left; }
-
-        .btn-container { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; margin-top: 10px; flex-shrink: 0; }
-        .next-btn { background: #ff4d6d; color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; width: 200px; }
-        
-        .music-btn, .vault-trigger-btn { 
-            background: none; border: 1px solid #ff4d6d; color: #ff4d6d; 
-            padding: 8px 20px; border-radius: 20px; font-size: 0.8rem; 
-            cursor: pointer; display: flex; align-items: center; gap: 5px; width: 200px; justify-content: center;
-        }
-
-        .photo-slider { 
-            position: absolute; 
-            top: 20px; /* Moves it down slightly so it doesn't hit the status bar */
-            left: 10px; 
-            width: 120px; /* Slightly smaller for mobile */
-            height: 120px; 
-            background: white; 
-            padding: 5px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            z-index: 100; /* Higher z-index to stay ABOVE the background */
-            transform: rotate(-8deg); 
-            overflow: hidden; 
-}
-        .slide { position: absolute; top: 8px; left: 8px; width: calc(100% - 16px); height: calc(100% - 16px); object-fit: cover; border-radius: 12px; opacity: 0; transition: opacity 1.5s ease-in-out; }
-        .slide.active { opacity: 1; }
-        .decor { position: absolute; opacity: 0.45; z-index: 1; user-select: none; }
-        
-        .floating-game-btn { position: fixed; bottom: 25px; left: 25px; background: #ff4d6d; color: #fff; padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; cursor: pointer; border: none; z-index: 100; box-shadow: 0 5px 15px rgba(255, 77, 109, 0.3); }
-        .miss-you-btn { position: fixed; bottom: 25px; right: 25px; background: #fff; color: #ff4d6d; padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; text-decoration: none; border: 1px solid #ffdde1; z-index: 100; }
-        .counter { font-size: 0.75rem; color: #888; margin-top: 20px; font-style: italic; }
-
-        .burst-heart { 
-            position: fixed; color: #ff4d6d; font-size: 1.5rem; pointer-events: none; z-index: 9999; user-select: none;
-            animation: fly-away 0.8s ease-out forwards; 
-        }
-        @keyframes fly-away { 
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 
-            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2); opacity: 0; } 
-        }
-
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 77, 109, 0.4); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .overlay-card { background: white; width: 85%; max-width: 340px; padding: 25px; border-radius: 30px; text-align: center; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
-        .close-overlay { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2rem; color: #ff4d6d; cursor: pointer; }
-        .vault-item { background: #fff0f3; padding: 12px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #ff4d6d; font-size: 0.9rem; color: #444; text-align: left; }
-        .option-btn { background: #fff0f3; border: 2px solid #ffdde1; padding: 12px; border-radius: 15px; cursor: pointer; font-weight: bold; color: #ff4d6d; margin-bottom: 5px;}
-        @media (max-width: 600px) {
-    .photo-slider {
-        top: 80px; /* Moves it below the Anniversary timer */
-        left: 50%;
-        transform: translateX(-50%) rotate(-5deg); /* Centers it on the phone screen */
-        width: 140px;
-        height: 140px;
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <link rel="manifest" href="manifest.json">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>For My Favorite Person</title>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+        <style>
+        .notification-dot {
+        display: none; /* Hidden by default, JS will show it if needed */
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: red;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 10px;
     }
+
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+    }
+            /* Styling for the floating burst hearts */
+            .burst-heart { 
+                position: fixed; 
+        color: #ff4d6d; 
+        font-size: 1.5rem; 
+        pointer-events: none; 
+        z-index: 9999; 
+        user-select: none;
+        animation: fly-away 0.8s ease-out forwards; 
+    }
+
+    @keyframes fly-away { 
+        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 
+        100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2); opacity: 0; } 
+    }
+
+    /* Optional: Add this class to your .card to make the whole card "throb" slightly like a heartbeat */
     .card {
-        margin-top: 210px; /* Pushes the card down so it doesn't cover the photos */
-    }
-}
-.notification-dot {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: red;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 10px;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-    70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
-    100% { transform: scale(1); }
-}
-    </style>
-</head>
-<body onclick="createHeartBurst(event)">
-
-    <div class="anniversary-timer">
-        <div class="timer-label">Anniversary In</div>
-        <div id="countdown-clock" class="timer-countdown">00m : 00d : 00h</div>
-    </div>
-
-    <div class="photo-slider">
-        <img src="pic1.jpg" class="slide active">
-        <img src="pic2.jpg" class="slide">
-        <img src="pic3.jpg" class="slide">
-        <img src="pic4.jpg" class="slide">
-    </div>
-
-    <div class="card">
-        <h1 id="header-text">✨ FOR MY BABY ✨</h1>
-        <div id="compliment">Loading...</div>
-        <div class="btn-container">
-            <a href="memories.html" style="text-decoration:none;">
-            <button class="vault-trigger-btn" style="background:#ff4d6d; color:white; border:none; margin-top:10px;">✨ Our Memory Lane</button>
-            </a>
-            <button class="next-btn" onclick="displayLove()">Next Message</button>
-            <button class="music-btn" onclick="toggleMusic()">▶ Play Our Song</button>
-            <button class="vault-trigger-btn" onclick="openVault()">📁 Your Love Vault</button>
-            <audio id="myAudio" loop><source src="our-song.mp3" type="audio/mpeg"></audio>
-        </div>
-        <div class="counter" id="day-counter"></div>
-    </div>
-
-    <div id="vault-overlay" class="overlay">
-        <div class="overlay-card">
-            <button class="close-overlay" onclick="closeOverlay('vault-overlay')">×</button>
-            <h2 style="color:#ff4d6d">Your Love Vault 📂</h2>
-            <div id="vault-list"></div>
-        </div>
-    </div>
-    <button id="updateBtn" style="position: relative; padding: 12px 25px; cursor: pointer;">
-    New Updates
-    <span id="badge" class="notification-dot">1</span>
-</button>
-
-<div id="updateModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-    <div style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 15px; width: 80%; max-width: 400px; text-align: center; position: relative; font-family: sans-serif;">
-        <span id="closeModal" style="position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer;">&times;</span>
-        <h2 style="color: #ff4d6d;">What's New? 💖</h2>
-        <ul style="text-align: left; line-height: 1.6; color: #333;">
-            <li>You can now add your version of memories in the memory lane babygirl💖</li>
-        </ul>
-        <p style="font-size: 12px; color: #888; margin-top: 15px;">Last updated: Feb 16, 2026</p>
-    </div>
-</div>
-
-    <div id="quiz-overlay" class="overlay">
-        <div class="overlay-card">
-            <button class="close-overlay" onclick="closeOverlay('quiz-overlay')">×</button>
-            <h2 style="color:#ff4d6d">Cupid's Quiz 💘</h2>
-            <div id="quiz-container">
-                <p id="question-text" style="font-weight: bold;"></p>
-                <div id="answer-options" style="display:grid; gap:10px; margin-top:10px;"></div>
-            </div>
-            <div id="reward-display" style="display: none;">
-                <div style="background:#ff4d6d; color:white; padding:15px; border-radius:15px; margin:15px 0;">
-                    <p>REWARD UNLOCKED!</p>
-                    <h3 id="coupon-text"></h3>
-                </div>
-                <button class="next-btn" style="width:100%" onclick="continueQuiz()">Keep Playing</button>
-            </div>
-        </div>
-    </div>
-
-    <button class="floating-game-btn" onclick="openQuiz()">🎮 Cupid's Quiz</button>
-    <a href="https://wa.me/919372632277?text=I%20miss%20you%20a%20lott%20right%20now%20baby%20❤️" class="miss-you-btn">I MISS YOU ❤️</a>
-    
-<script>
-    const anniversaryDate = new Date(2026, 3, 17); // April 17, 2026
-    let specialStep = 0;
-
-    function updateTimer() {
-        const now = new Date();
-        const diffTotal = anniversaryDate - now;
-        if (diffTotal <= 0) { document.getElementById('countdown-clock').innerText = "HAPPY ANNIVERSARY! ❤️"; return; }
-
-        let months = (anniversaryDate.getFullYear() - now.getFullYear()) * 12 + (anniversaryDate.getMonth() - now.getMonth());
-        let tempDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-        
-        if (tempDate > anniversaryDate) {
-            months--;
-            tempDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-        }
-
-        const remainingMs = anniversaryDate - tempDate;
-        const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-        document.getElementById('countdown-clock').innerText = 
-            `${String(months).padStart(2, '0')}m : ${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h`;
+        animation: heart-throb 4s ease-in-out infinite;
     }
 
-    const compliments = [
-    "Every time I see your smile, it feels like the world around me slows down just for a second.\nYou have this incredible way of making even the hardest days feel light and manageable.\nI am so lucky to be the one who gets to walk through life by your side.",
-
-    "I am constantly in awe of the beautiful way your mind works and the kindness you show everyone.\nYou don't even realize how much warmth you bring into every room you walk into.\nNever forget that you are a rare and precious light in this world.",
-
-    "There is a certain kind of peace I only find when I’m talking to you or just thinking of you.\nYou’ve become my safe harbor and my favorite part of every single day, no matter what.\nI hope you see yourself through my eyes today—perfect, just as you are.",
-
-    "I am so incredibly proud of the woman you are and the person you are constantly becoming.\nYour strength is quiet but powerful, and your heart is bigger than anyone I have ever known.\nThank you for being exactly who you are, without ever changing for anyone.",
-
-    "Sometimes I catch myself just staring at you, wondering how I got so lucky to have you in my life.\nYou aren't just my girlfriend; you are my best friend, my confidant, and my entire heart.\nEverything is just better, brighter, and more meaningful when I'm with you.",
-
-    "Your laughter is quite literally my favorite sound in the world—it's like music to my soul.\nYou have a way of healing parts of me that I didn't even know were hurting just by being there.\nI promise to always be the person who protects your smile at all costs.",
-
-    "I love the way you see beauty in the smallest things and how much you care about the people you love.\nYou have a soul that is so deep and beautiful, and I feel honored that you chose to share it with me.\nYou make me want to be a better man every single day.",
-
-    "No matter where life takes us, my favorite place in the entire world will always be right next to you.\nYou are the home I’ve been looking for my whole life, and I finally feel like I belong.\nThank you for choosing me and for loving me in the way that only you can.",
-
-    "You look absolutely stunning today, but it’s the light inside of you that truly takes my breath away.\nThere is a grace in your movements and a kindness in your eyes that I find completely captivating.\nYou are, quite simply, the most beautiful person I have ever known.",
-
-    "I just wanted to remind you that you are enough, you are more than enough, and you are everything to me.\nYour presence in my life has changed me for the better in ways I can't even put into words.\nI love you more than yesterday, and I’ll love you even more tomorrow."
-];
-
-    function saveToVault(msg) {
-        let vault = JSON.parse(localStorage.getItem('muskan_vault')) || [];
-        let preview = msg.replace(/<[^>]*>?/gm, ' ').substring(0, 100) + "...";
-        if (!vault.includes(preview)) { vault.push(preview); localStorage.setItem('muskan_vault', JSON.stringify(vault)); }
+    @keyframes heart-throb {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
     }
-
-    function openVault() {
-        const list = document.getElementById('vault-list');
-        const vault = JSON.parse(localStorage.getItem('muskan_vault')) || [];
-        list.innerHTML = vault.length ? "" : "<p>No notes saved yet!</p>";
-        vault.slice().reverse().forEach(m => {
-            const d = document.createElement('div'); d.className = 'vault-item'; d.innerText = m; list.appendChild(d);
-        });
-        document.getElementById('vault-overlay').style.display = 'flex';
-    }
-
-    function displayLove() {
-        const comp = document.getElementById('compliment');
-        const head = document.getElementById('header-text');
-        const card = document.querySelector('.card');
-        const today = new Date();
-        
-        // Valentine's Date Check (Feb 14 is month index 1)
-        if (today.getMonth() === 1 && today.getDate() === 15) { 
-            if (specialStep === 0) {
-                head.innerText = "⭐ MY VALENTINE ⭐";
-                comp.innerHTML = `My chotu sa cutu sa baby,<br><br>
-                I’ve been sitting here for what feels like hours, staring at a blank page and trying to find a way to capture the sheer weight of what I feel for you. The truth is, I’ve realized that language is sometimes a bit of a trap—no matter how many words I string together, they never seem to be enough to hold the reality of "us."<br><br>
-                How do I explain the way my heart skips a beat when I see your name on my phone? How do I quantify the profound, soul-deep peace that washes over me just because you’re in the room? On a day that the world sets aside for celebrating love, all I can think about is how lucky I am that my version of love isn’t a concept or a holiday. My version of love has your name, your laugh, and your beautiful heart attached to it.<br><br>
-                Before you came into my life, I think I was just navigating a world that felt muted. I was moving through the motions, seeing life in shades of gray without even realizing what I was missing. I thought I knew what happiness was, but looking back, it was like I was watching a movie of someone else’s life. Then you arrived, and suddenly, everything exploded into high-definition color. You didn’t just change my life; you expanded my entire universe.<br><br>
-                You’ve taught me that love isn’t just a fleeting emotion or a grand gesture meant for the cameras; it’s the quiet, sacred peace of sitting in silence with you on a random Tuesday. It’s the way you believe in me when I’m struggling to believe in myself, and the way you make even the most ordinary, rainy afternoon feel like the greatest adventure I’ve ever been on.<br><br>
-                I am constantly, hopelessly in awe of the woman you are. I love your strength—the kind of strength that doesn't need to be loud or aggressive to be powerful. I love the way you handle the world with such rare grace, and that beautiful, brilliant mind of yours that challenges me, inspires me, and never ceases to amaze me. You have this incredible gift for seeing the beauty in the mundane and the good in everyone you meet.<br><br>
-                But more than who you are to the world, I love the way you make me feel. With you, I am finally home. You are my safe harbor in every storm, my best friend, and the person I want to share every sunset, every victory, and every small, messy joy with for as long as I’m on this earth. You are the first person I want to tell my news to, and you are the last person I want to talk to before I close my eyes at night.<br><br>
-                Thank you for choosing me. In a world of billions of people, you chose to give your heart to me, and I promise you that I will never take that for granted. You are better than any dream I ever dared to have, and you are the greatest blessing I have ever received.<br><br>
-                Happy Valentine’s Day, my beautiful girl. You are, and always will be, the love of my life.<br><br>
-                <strong>Always and forever yours,</strong><br>
-                <strong>Heet ❤️</strong>`;
-                saveToVault("Heet's Valentine's Letter ❤️");
-                specialStep = 1;
-            } else {
-                head.innerText = "💖 A LITTLE NOTE 💖";
-                comp.innerHTML = "Hey baby, just wanted to tell you that you matter a lottt to me and I will always be there for you—forever and ever❤️. <br><br>You can scan this code everyday for a new message. <br><br><strong>I LOVE YOU SO MUCHH BABYGIRLL!❤️</strong>";
-                saveToVault("Heet's Note: I will always be there for you. ❤️");
-                specialStep = 0;
+            body { 
+                margin: 0; padding: 0; min-height: 100vh; 
+                background: linear-gradient(135deg, #fff0f3 0%, #ffdde1 100%); 
+                display: flex; flex-direction: column; justify-content: flex-start; align-items: center; 
+                font-family: sans-serif; overflow-x: hidden; position: relative; 
+                padding-top: 50px; padding-bottom: 100px;
             }
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        } else {
-            head.innerText = "✨ FOR MY BABY ✨";
-            let txt = compliments[Math.floor(Math.random() * compliments.length)];
-            comp.innerText = txt;
-            saveToVault(txt);
+
+            .anniversary-timer {
+                position: fixed; top: 20px; right: 20px;
+                background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(5px);
+                padding: 10px 15px; border-radius: 15px; border: 1px solid rgba(255, 77, 109, 0.3);
+                text-align: center; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            .timer-label { font-size: 0.6rem; color: #ff4d6d; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+            .timer-countdown { font-family: monospace; font-size: 0.9rem; color: #333; font-weight: bold; }
+
+            .card {
+                background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+                padding: 2rem; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+                width: 85%; max-width: 380px; z-index: 10; border: 1px solid rgba(255, 255, 255, 0.4);
+                display: flex; flex-direction: column; align-items: center;
+                height: auto; max-height: 75vh; overflow-y: auto; margin-top: 40px; position: relative; 
+                scroll-behavior: smooth;
+                white-space: pre-line;
+            }
+
+            h1 { color: #ff4d6d; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem; text-align: center; }
+            #compliment { color: #1a1a1a; font-size: 1rem; font-weight: 500; line-height: 1.6; margin: 20px 0; width: 100%; text-align: left; }
+
+            .btn-container { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; margin-top: 10px; flex-shrink: 0; }
+            .next-btn { background: #ff4d6d; color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; width: 200px; }
+            
+            .music-btn, .vault-trigger-btn { 
+                background: none; border: 1px solid #ff4d6d; color: #ff4d6d; 
+                padding: 8px 20px; border-radius: 20px; font-size: 0.8rem; 
+                cursor: pointer; display: flex; align-items: center; gap: 5px; width: 200px; justify-content: center;
+            }
+
+            .photo-slider { 
+                position: absolute; 
+                top: 20px; /* Moves it down slightly so it doesn't hit the status bar */
+                left: 10px; 
+                width: 120px; /* Slightly smaller for mobile */
+                height: 120px; 
+                background: white; 
+                padding: 5px; 
+                border-radius: 15px; 
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+                z-index: 100; /* Higher z-index to stay ABOVE the background */
+                transform: rotate(-8deg); 
+                overflow: hidden; 
+    }
+            .slide { position: absolute; top: 8px; left: 8px; width: calc(100% - 16px); height: calc(100% - 16px); object-fit: cover; border-radius: 12px; opacity: 0; transition: opacity 1.5s ease-in-out; }
+            .slide.active { opacity: 1; }
+            .decor { position: absolute; opacity: 0.45; z-index: 1; user-select: none; }
+            
+            .floating-game-btn { position: fixed; bottom: 25px; left: 25px; background: #ff4d6d; color: #fff; padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; cursor: pointer; border: none; z-index: 100; box-shadow: 0 5px 15px rgba(255, 77, 109, 0.3); }
+            .miss-you-btn { position: fixed; bottom: 25px; right: 25px; background: #fff; color: #ff4d6d; padding: 12px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; text-decoration: none; border: 1px solid #ffdde1; z-index: 100; }
+            .counter { font-size: 0.75rem; color: #888; margin-top: 20px; font-style: italic; }
+
+            .burst-heart { 
+                position: fixed; color: #ff4d6d; font-size: 1.5rem; pointer-events: none; z-index: 9999; user-select: none;
+                animation: fly-away 0.8s ease-out forwards; 
+            }
+            @keyframes fly-away { 
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 
+                100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2); opacity: 0; } 
+            }
+
+            .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 77, 109, 0.4); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+            .overlay-card { background: white; width: 85%; max-width: 340px; padding: 25px; border-radius: 30px; text-align: center; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
+            .close-overlay { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2rem; color: #ff4d6d; cursor: pointer; }
+            .vault-item { background: #fff0f3; padding: 12px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #ff4d6d; font-size: 0.9rem; color: #444; text-align: left; }
+            .option-btn { background: #fff0f3; border: 2px solid #ffdde1; padding: 12px; border-radius: 15px; cursor: pointer; font-weight: bold; color: #ff4d6d; margin-bottom: 5px;}
+            @media (max-width: 600px) {
+        .photo-slider {
+            top: 80px; /* Moves it below the Anniversary timer */
+            left: 50%;
+            transform: translateX(-50%) rotate(-5deg); /* Centers it on the phone screen */
+            width: 140px;
+            height: 140px;
         }
-        card.scrollTo({ top: 0, behavior: 'smooth' });
+        .card {
+            margin-top: 210px; /* Pushes the card down so it doesn't cover the photos */
+        }
+    }
+    .notification-dot {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: red;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 10px;
+        animation: pulse 1.5s infinite;
     }
 
-    function createHeartBurst(e) {
-    // This tells the code: "If the user clicks a button OR a link (A), don't play hearts"
-    if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
-        for (let i = 0; i < 6; i++) {
-            const h = document.createElement('div');
-            h.innerHTML = '💖'; h.className = 'burst-heart';
-            h.style.left = e.clientX + 'px'; h.style.top = e.clientY + 'px';
-            h.style.setProperty('--tx', (Math.random() * 160 - 80) + 'px');
-            h.style.setProperty('--ty', (Math.random() * 160 - 80) + 'px');
-            document.body.appendChild(h);
-            setTimeout(() => h.remove(), 800);
-        }
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+        70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+        100% { transform: scale(1); }
     }
+        </style>
+    </head>
+    <body onclick="createHeartBurst(event)">
 
-    // Quiz Data
-    const questions = [
-        { q: "What is my favorite color on you?", a: ["Red", "Black", "Pink", "White"], correct: 3 },
-        { q: "Where was our first date?", a: ["Cafe", "Park", "Cinema", "Mall"], correct: 0 },
-        { q: "Who is more dramatic?", a: ["Me", "You", "Both equally", "Depends on day"], correct: 2 },
-        { q: "What's my favorite nickname for you?", a: ["Babygirl", "Cutie", "Muski", "Moti"], correct: 3 },
-        { q: "Which food do I crave the most?", a: ["Pizza", "Burger", "Momos", "Pasta"], correct: 1 },
-        { q: "Who fell in love first?", a: ["Me", "You", "It was mutual", "Still a secret"], correct: 0 },
-        { q: "What's the one thing I can't live without?", a: ["My phone", "Video games", "You", "Coffee"], correct: 2 },
-        { q: "How many kids do we want (joking)?", a: ["None", "One", "Two", "A whole cricket team"], correct: 3 },
-        { q: "Favorite movie genre with you?", a: ["Horror", "Romance", "Action", "Comedy"], correct: 0 },
-        { q: "Better cook?", a: ["Me", "You", "Zomato", "Maggi"], correct: 1 },
-        { q: "Favorite physical feature?", a: ["Eyes", "Smile", "Hair", "Everything"], correct: 3 },
-        { q: "The villain of our movie?", a: ["Me", "You", "The Distance", "Teri behen"], correct: 3 },
-        { q: "Our favorite song?", a: ["Darkhaast", "Perfect", "Tum Se Hi", "Chikni Chameli"], correct: 0 },
-        { q: "Who takes longer to get ready?", a: ["Me", "You", "Both fast", "Both take forever"], correct: 1 },
-        { q: "Dream travel with you?", a: ["Paris", "Switzerland", "Bali", "Maldives"], correct: 1 },
-        { q: "What do I love doing most?", a: ["Talking", "Traveling", "Eating", "Just being near you"], correct: 3 },
-        { q: "More likely to start a silly fight?", a: ["Me", "You", "Both", "Never"], correct: 1 },
-        { q: "Favorite sweet treat?", a: ["Chocolate", "Ice Cream", "Cake", "You"], correct: 3 },
-        { q: "More protective?", a: ["Me", "You", "Both", "None"], correct: 0 },
-        { q: "Best gift I ever gave you?", a: ["Flowers", "Jewelry", "This Website", "My Heart"], correct: 3 },
-        { q: "Favorite season?", a: ["Summer", "Winter", "Monsoon", "Spring"], correct: 1 },
-        { q: "The 'Big Sleeper'?", a: ["Me", "You", "Both", "The Cat"], correct: 1 },
-        { q: "Favorite time of day?", a: ["Morning", "Afternoon", "Late night", "All day"], correct: 2 },
-        { q: "What do I always notice?", a: ["Outfit", "Mood", "Fragrance", "Hair"], correct: 3 },
-        { q: "If we win a lottery?", a: ["Buy house", "Travel", "Buy car", "Save"], correct: 1 },
-        { q: "I love you more than...", a: ["Pizza", "Sleep", "Games", "All of the above"], correct: 3 }
+        <div class="anniversary-timer">
+            <div class="timer-label">Anniversary In</div>
+            <div id="countdown-clock" class="timer-countdown">00m : 00d : 00h</div>
+        </div>
+
+        <div class="photo-slider">
+            <img src="pic1.jpg" class="slide active">
+            <img src="pic2.jpg" class="slide">
+            <img src="pic3.jpg" class="slide">
+            <img src="pic4.jpg" class="slide">
+        </div>
+
+        <div class="card">
+            <h1 id="header-text">✨ FOR MY BABY ✨</h1>
+            <div id="compliment">Loading...</div>
+            <div class="btn-container">
+                <a href="memories.html" style="text-decoration:none;">
+                <button class="vault-trigger-btn" style="background:#ff4d6d; color:white; border:none; margin-top:10px;">✨ Our Memory Lane</button>
+                </a>
+                <button class="next-btn" onclick="displayLove()">Next Message</button>
+                <button class="music-btn" onclick="toggleMusic()">▶ Play Our Song</button>
+                <button class="vault-trigger-btn" onclick="openVault()">📁 Your Love Vault</button>
+                <audio id="myAudio" loop><source src="our-song.mp3" type="audio/mpeg"></audio>
+            </div>
+            <div class="counter" id="day-counter"></div>
+        </div>
+
+        <div id="vault-overlay" class="overlay">
+            <div class="overlay-card">
+                <button class="close-overlay" onclick="closeOverlay('vault-overlay')">×</button>
+                <h2 style="color:#ff4d6d">Your Love Vault 📂</h2>
+                <div id="vault-list"></div>
+            </div>
+        </div>
+        <button id="updateBtn" style="position: relative; padding: 12px 25px; cursor: pointer;">
+        New Updates
+        <span id="badge" class="notification-dot">1</span>
+    </button>
+
+    <div id="updateModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+        <div style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 15px; width: 80%; max-width: 400px; text-align: center; position: relative; font-family: sans-serif;">
+            <span id="closeModal" style="position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer;">&times;</span>
+            <h2 style="color: #ff4d6d;">What's New? 💖</h2>
+            <ul style="text-align: left; line-height: 1.6; color: #333;">
+                <li>You can now add your version of memories in the memory lane babygirl💖</li>
+            </ul>
+            <p style="font-size: 12px; color: #888; margin-top: 15px;">Last updated: Feb 16, 2026</p>
+        </div>
+    </div>
+
+        <div id="quiz-overlay" class="overlay">
+            <div class="overlay-card">
+                <button class="close-overlay" onclick="closeOverlay('quiz-overlay')">×</button>
+                <h2 style="color:#ff4d6d">Cupid's Quiz 💘</h2>
+                <div id="quiz-container">
+                    <p id="question-text" style="font-weight: bold;"></p>
+                    <div id="answer-options" style="display:grid; gap:10px; margin-top:10px;"></div>
+                </div>
+                <div id="reward-display" style="display: none;">
+                    <div style="background:#ff4d6d; color:white; padding:15px; border-radius:15px; margin:15px 0;">
+                        <p>REWARD UNLOCKED!</p>
+                        <h3 id="coupon-text"></h3>
+                    </div>
+                    <button class="next-btn" style="width:100%" onclick="continueQuiz()">Keep Playing</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="floating-game-btn" onclick="openQuiz()">🎮 Cupid's Quiz</button>
+        <a href="https://wa.me/919372632277?text=I%20miss%20you%20a%20lott%20right%20now%20baby%20❤️" class="miss-you-btn">I MISS YOU ❤️</a>
+        
+    <script>
+        const anniversaryDate = new Date(2026, 3, 17); // April 17, 2026
+        let specialStep = 0;
+
+        function updateTimer() {
+            const now = new Date();
+            const diffTotal = anniversaryDate - now;
+            if (diffTotal <= 0) { document.getElementById('countdown-clock').innerText = "HAPPY ANNIVERSARY! ❤️"; return; }
+
+            let months = (anniversaryDate.getFullYear() - now.getFullYear()) * 12 + (anniversaryDate.getMonth() - now.getMonth());
+            let tempDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+            
+            if (tempDate > anniversaryDate) {
+                months--;
+                tempDate = new Date(now.getFullYear(), now.getMonth() + months, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+            }
+
+            const remainingMs = anniversaryDate - tempDate;
+            const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            document.getElementById('countdown-clock').innerText = 
+                `${String(months).padStart(2, '0')}m : ${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h`;
+        }
+
+        const compliments = [
+        "Every time I see your smile, it feels like the world around me slows down just for a second.\nYou have this incredible way of making even the hardest days feel light and manageable.\nI am so lucky to be the one who gets to walk through life by your side.",
+
+        "I am constantly in awe of the beautiful way your mind works and the kindness you show everyone.\nYou don't even realize how much warmth you bring into every room you walk into.\nNever forget that you are a rare and precious light in this world.",
+
+        "There is a certain kind of peace I only find when I’m talking to you or just thinking of you.\nYou’ve become my safe harbor and my favorite part of every single day, no matter what.\nI hope you see yourself through my eyes today—perfect, just as you are.",
+
+        "I am so incredibly proud of the woman you are and the person you are constantly becoming.\nYour strength is quiet but powerful, and your heart is bigger than anyone I have ever known.\nThank you for being exactly who you are, without ever changing for anyone.",
+
+        "Sometimes I catch myself just staring at you, wondering how I got so lucky to have you in my life.\nYou aren't just my girlfriend; you are my best friend, my confidant, and my entire heart.\nEverything is just better, brighter, and more meaningful when I'm with you.",
+
+        "Your laughter is quite literally my favorite sound in the world—it's like music to my soul.\nYou have a way of healing parts of me that I didn't even know were hurting just by being there.\nI promise to always be the person who protects your smile at all costs.",
+
+        "I love the way you see beauty in the smallest things and how much you care about the people you love.\nYou have a soul that is so deep and beautiful, and I feel honored that you chose to share it with me.\nYou make me want to be a better man every single day.",
+
+        "No matter where life takes us, my favorite place in the entire world will always be right next to you.\nYou are the home I’ve been looking for my whole life, and I finally feel like I belong.\nThank you for choosing me and for loving me in the way that only you can.",
+
+        "You look absolutely stunning today, but it’s the light inside of you that truly takes my breath away.\nThere is a grace in your movements and a kindness in your eyes that I find completely captivating.\nYou are, quite simply, the most beautiful person I have ever known.",
+
+        "I just wanted to remind you that you are enough, you are more than enough, and you are everything to me.\nYour presence in my life has changed me for the better in ways I can't even put into words.\nI love you more than yesterday, and I’ll love you even more tomorrow."
     ];
-    const coupons = ["1 FREE ICE CREAM DATE 🍦", "A 10-MINUTE MASSAGE 💆‍♂️", "ONE MOVIE NIGHT 🍿", "YES TO ANYTHING FOR 1 HR", "SHEELA KI JAWANI DANCE VIDEO"];
 
-    let currentQ = 0; let score = 0;
-    function loadQuestion() {
-        const q = questions[currentQ % questions.length];
-        document.getElementById('question-text').innerText = q.q;
-        const opt = document.getElementById('answer-options'); opt.innerHTML = ''; 
-        q.a.forEach((o, i) => {
-            const b = document.createElement('button'); b.className = 'option-btn'; b.innerText = o;
-            b.onclick = () => { if(i===q.correct){ score++; currentQ++; if(score%5===0) showCoupon(); else loadQuestion(); } else alert("Wrong! ❤️"); };
-            opt.appendChild(b);
-        });
+        function saveToVault(msg) {
+            let vault = JSON.parse(localStorage.getItem('muskan_vault')) || [];
+            let preview = msg.replace(/<[^>]*>?/gm, ' ').substring(0, 100) + "...";
+            if (!vault.includes(preview)) { vault.push(preview); localStorage.setItem('muskan_vault', JSON.stringify(vault)); }
+        }
+
+        function openVault() {
+            const list = document.getElementById('vault-list');
+            const vault = JSON.parse(localStorage.getItem('muskan_vault')) || [];
+            list.innerHTML = vault.length ? "" : "<p>No notes saved yet!</p>";
+            vault.slice().reverse().forEach(m => {
+                const d = document.createElement('div'); d.className = 'vault-item'; d.innerText = m; list.appendChild(d);
+            });
+            document.getElementById('vault-overlay').style.display = 'flex';
+        }
+
+        function displayLove() {
+            const comp = document.getElementById('compliment');
+            const head = document.getElementById('header-text');
+            const card = document.querySelector('.card');
+            const today = new Date();
+            
+            // Valentine's Date Check (Feb 14 is month index 1)
+            if (today.getMonth() === 1 && today.getDate() === 15) { 
+                if (specialStep === 0) {
+                    head.innerText = "⭐ MY VALENTINE ⭐";
+                    comp.innerHTML = `My chotu sa cutu sa baby,<br><br>
+                    I’ve been sitting here for what feels like hours, staring at a blank page and trying to find a way to capture the sheer weight of what I feel for you. The truth is, I’ve realized that language is sometimes a bit of a trap—no matter how many words I string together, they never seem to be enough to hold the reality of "us."<br><br>
+                    How do I explain the way my heart skips a beat when I see your name on my phone? How do I quantify the profound, soul-deep peace that washes over me just because you’re in the room? On a day that the world sets aside for celebrating love, all I can think about is how lucky I am that my version of love isn’t a concept or a holiday. My version of love has your name, your laugh, and your beautiful heart attached to it.<br><br>
+                    Before you came into my life, I think I was just navigating a world that felt muted. I was moving through the motions, seeing life in shades of gray without even realizing what I was missing. I thought I knew what happiness was, but looking back, it was like I was watching a movie of someone else’s life. Then you arrived, and suddenly, everything exploded into high-definition color. You didn’t just change my life; you expanded my entire universe.<br><br>
+                    You’ve taught me that love isn’t just a fleeting emotion or a grand gesture meant for the cameras; it’s the quiet, sacred peace of sitting in silence with you on a random Tuesday. It’s the way you believe in me when I’m struggling to believe in myself, and the way you make even the most ordinary, rainy afternoon feel like the greatest adventure I’ve ever been on.<br><br>
+                    I am constantly, hopelessly in awe of the woman you are. I love your strength—the kind of strength that doesn't need to be loud or aggressive to be powerful. I love the way you handle the world with such rare grace, and that beautiful, brilliant mind of yours that challenges me, inspires me, and never ceases to amaze me. You have this incredible gift for seeing the beauty in the mundane and the good in everyone you meet.<br><br>
+                    But more than who you are to the world, I love the way you make me feel. With you, I am finally home. You are my safe harbor in every storm, my best friend, and the person I want to share every sunset, every victory, and every small, messy joy with for as long as I’m on this earth. You are the first person I want to tell my news to, and you are the last person I want to talk to before I close my eyes at night.<br><br>
+                    Thank you for choosing me. In a world of billions of people, you chose to give your heart to me, and I promise you that I will never take that for granted. You are better than any dream I ever dared to have, and you are the greatest blessing I have ever received.<br><br>
+                    Happy Valentine’s Day, my beautiful girl. You are, and always will be, the love of my life.<br><br>
+                    <strong>Always and forever yours,</strong><br>
+                    <strong>Heet ❤️</strong>`;
+                    saveToVault("Heet's Valentine's Letter ❤️");
+                    specialStep = 1;
+                } else {
+                    head.innerText = "💖 A LITTLE NOTE 💖";
+                    comp.innerHTML = "Hey baby, just wanted to tell you that you matter a lottt to me and I will always be there for you—forever and ever❤️. <br><br>You can scan this code everyday for a new message. <br><br><strong>I LOVE YOU SO MUCHH BABYGIRLL!❤️</strong>";
+                    saveToVault("Heet's Note: I will always be there for you. ❤️");
+                    specialStep = 0;
+                }
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            } else {
+                head.innerText = "✨ FOR MY BABY ✨";
+                let txt = compliments[Math.floor(Math.random() * compliments.length)];
+                comp.innerText = txt;
+                saveToVault(txt);
+            }
+            card.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function createHeartBurst(e) {
+        // This tells the code: "If the user clicks a button OR a link (A), don't play hearts"
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A' || e.target.closest('a')) return;
+            for (let i = 0; i < 6; i++) {
+                const h = document.createElement('div');
+                h.innerHTML = '💖'; h.className = 'burst-heart';
+                h.style.left = e.clientX + 'px'; h.style.top = e.clientY + 'px';
+                h.style.setProperty('--tx', (Math.random() * 160 - 80) + 'px');
+                h.style.setProperty('--ty', (Math.random() * 160 - 80) + 'px');
+                document.body.appendChild(h);
+                setTimeout(() => h.remove(), 800);
+            }
+        }
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        // Quiz Data
+        const questions = [
+            { q: "What is my favorite color on you?", a: ["Red", "Black", "Pink", "White"], correct: 3 },
+            { q: "Where was our first date?", a: ["Cafe", "Park", "Cinema", "Mall"], correct: 0 },
+            { q: "Who is more dramatic?", a: ["Me", "You", "Both equally", "Depends on day"], correct: 2 },
+            { q: "What's my favorite nickname for you?", a: ["Babygirl", "Cutie", "Muski", "Moti"], correct: 3 },
+            { q: "Which food do I crave the most?", a: ["Pizza", "Burger", "Momos", "Pasta"], correct: 1 },
+            { q: "Who fell in love first?", a: ["Me", "You", "It was mutual", "Still a secret"], correct: 0 },
+            { q: "What's the one thing I can't live without?", a: ["My phone", "Video games", "You", "Coffee"], correct: 2 },
+            { q: "How many kids do we want (joking)?", a: ["None", "One", "Two", "A whole cricket team"], correct: 3 },
+            { q: "Favorite movie genre with you?", a: ["Horror", "Romance", "Action", "Comedy"], correct: 0 },
+            { q: "Better cook?", a: ["Me", "You", "Zomato", "Maggi"], correct: 1 },
+            { q: "Favorite physical feature?", a: ["Eyes", "Smile", "Hair", "Everything"], correct: 3 },
+            { q: "The villain of our movie?", a: ["Me", "You", "The Distance", "Teri behen"], correct: 3 },
+            { q: "Our favorite song?", a: ["Darkhaast", "Perfect", "Tum Se Hi", "Chikni Chameli"], correct: 0 },
+            { q: "Who takes longer to get ready?", a: ["Me", "You", "Both fast", "Both take forever"], correct: 1 },
+            { q: "Dream travel with you?", a: ["Paris", "Switzerland", "Bali", "Maldives"], correct: 1 },
+            { q: "What do I love doing most?", a: ["Talking", "Traveling", "Eating", "Just being near you"], correct: 3 },
+            { q: "More likely to start a silly fight?", a: ["Me", "You", "Both", "Never"], correct: 1 },
+            { q: "Favorite sweet treat?", a: ["Chocolate", "Ice Cream", "Cake", "You"], correct: 3 },
+            { q: "More protective?", a: ["Me", "You", "Both", "None"], correct: 0 },
+            { q: "Best gift I ever gave you?", a: ["Flowers", "Jewelry", "This Website", "My Heart"], correct: 3 },
+            { q: "Favorite season?", a: ["Summer", "Winter", "Monsoon", "Spring"], correct: 1 },
+            { q: "The 'Big Sleeper'?", a: ["Me", "You", "Both", "The Cat"], correct: 1 },
+            { q: "Favorite time of day?", a: ["Morning", "Afternoon", "Late night", "All day"], correct: 2 },
+            { q: "What do I always notice?", a: ["Outfit", "Mood", "Fragrance", "Hair"], correct: 3 },
+            { q: "If we win a lottery?", a: ["Buy house", "Travel", "Buy car", "Save"], correct: 1 },
+            { q: "I love you more than...", a: ["Pizza", "Sleep", "Games", "All of the above"], correct: 3 },
+            { q: "What's the one thing I do that makes you blush the most?", a: ["Compliments", "Staring at you", "Forehead kisses", "Holding your hand"], correct: 1 },
+            { q: "If we were stranded on an island, what would I do first?", a: ["Build a house", "Find food", "Whine that I miss you", "Panic"], correct: 2 },
+            { q: "What is my favorite mood of yours?", a: ["Sleepy", "Clingy", "Angry (choti don)", "Laughing"], correct: 2 },
+            { q: "How many times a day do I think about you?", a: ["10 times", "50 times", "Every hour", "It’s a 24/7 loop"], correct: 3 },
+            { q: "What's my secret talent according to you?", a: ["Making you laugh", "Being annoying", "Sleeping instantly", "Giving best hugs"], correct: 0 },
+            { q: "Which habit of mine do you roast me for the most?", a: ["My hair", "My jokes", "My driving", "My lazy nature"], correct: 1 },
+            { q: "What is our 'official' late-night activity?", a: ["Deep talks", "Fighting for no reason", "Sending reels", "Planning the future"], correct: 1 },
+            { q: "What was I wearing when I first realized I loved you?", a: ["A shirt", "A hoodie", "Don't remember", "Doesn't matter, I was just looking at you"], correct: 3 },
+            { q: "If you were a dessert, what would you be?", a: ["Chocolate Brownie", "Red Velvet", "Sweet Lassi", "A spicy chilly (coz you're hot)"], correct: 3 },
+            { q: "What's the one thing I'm most scared of?", a: ["Spiders", "Losing you", "Height", "Your sister"], correct: 3 },
+            { q: "What is my favorite thing to do when we meet?", a: ["Eating", "Just hugging you", "Clicking pics", "Talking non-stop"], correct: 1 },
+            { q: "Who is the 'Google Maps' of our relationship?", a: ["Me", "You", "None (we always get lost)", "Google only"], correct: 2 },
+            { q: "What's my reaction when you're angry with me?", a: ["I get angry too", "I go silent", "I try everything to make you smile", "I cry"], correct: 2 },
+            { q: "Which song reminds me of our first 'proper' feeling?", a: ["Pehle Bhi Main", "Tum Se Hi", "I Wanna Be Yours", "Perfect"], correct: 3 },
+            { q: "If I could take you anywhere right now, where would it be?", a: ["A quiet beach", "A fancy cafe", "A mountain top", "Just my room with you"], correct: 3 }
+        ];
+            const coupons = [
+                "1 FREE ICE CREAM DATE 🍦", 
+                "A 10-MINUTE MASSAGE 💆‍♂️", 
+                "ONE MOVIE NIGHT 🍿", 
+                "YES TO ANYTHING FOR 1 HR", 
+                "SHEELA KI JAWANI DANCE VIDEO",
+                "ONE 'WIN ANY ARGUMENT' CARD 🃏",
+                "A HANDWRITTEN LOVE LETTER ✍️",
+                "FREE HUG ON DEMAND (LIFETIME) 🤗",
+                "I WILL COOK FOR YOU (YOUR CHOICE) 🍳",
+                "RE-CLICK 5 PICTURES OF YOU PATIENTLY 📸",
+                "A 5-MINUTE HEAD MASSAGE (CHAMPI) 💆‍♀️",
+                "NO ROASTING FOR 24 HOURS STRAIGHT 🤐",
+                "A SURPRISE COFFEE/BOBA DELIVERY 🧋",
+                "I WILL WEAR THE OUTFIT YOU CHOOSE 👕",
+                "ONE 'GET OUT OF TROUBLE' PASS 🎟️",
+                "A FULL DAY OF UNDIVIDED ATTENTION ❤️",
+                "ONE SHOPPING TRIP (I CARRY THE BAGS) 🛍️",
+                "A PERSONALIZED POEM WRITTEN BY ME 📖",
+                "I WILL ADMIT YOU ARE RIGHT (ONCE) 🤝"
+            ];
+        let currentQ = 0; let score = 0;
+        function loadQuestion() {
+    // If she finishes all questions, shuffle again and restart
+    if (currentQ >= questions.length) {
+        shuffleArray(questions);
+        currentQ = 0;
     }
-    function showCoupon() {
-        document.getElementById('quiz-container').style.display = 'none';
-        document.getElementById('reward-display').style.display = 'block';
-        document.getElementById('coupon-text').innerText = coupons[Math.floor(Math.random()*coupons.length)];
-        confetti({ particleCount: 150, spread: 70 });
-    }
-    function continueQuiz() { document.getElementById('quiz-container').style.display = 'block'; document.getElementById('reward-display').style.display = 'none'; loadQuestion(); }
-    function openQuiz() { document.getElementById('quiz-overlay').style.display = 'flex'; loadQuestion(); }
-    function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
+
+    const q = questions[currentQ]; // No more % needed
+    document.getElementById('question-text').innerText = q.q;
+    const opt = document.getElementById('answer-options'); 
+    opt.innerHTML = ''; 
     
-    function toggleMusic() {
-        const a = document.getElementById("myAudio");
-        if (a.paused) { a.play(); document.querySelector('.music-btn').innerText = "⏸ Pause Music"; }
-        else { a.pause(); document.querySelector('.music-btn').innerText = "▶ Play Our Song"; }
-    }
-    function startSlider() {
-        const slides = document.querySelectorAll('.slide');
-        let currentSlide = 0;
-        if(slides.length > 0) {
-            setInterval(() => {
-                slides[currentSlide].classList.remove('active');
-                currentSlide = (currentSlide + 1) % slides.length;
-                slides[currentSlide].classList.add('active');
-            }, 4000);
+    q.a.forEach((o, i) => {
+        const b = document.createElement('button'); 
+        b.className = 'option-btn'; 
+        b.innerText = o;
+        b.onclick = () => { 
+            if(i === q.correct) { 
+                score++; 
+                currentQ++; 
+                if(score % 5 === 0) showCoupon(); 
+                else loadQuestion(); 
+            } else {
+                alert("Wrong! ❤️"); 
+            }
+        };
+        opt.appendChild(b);
+    });
+}
+        function showCoupon() {
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('reward-display').style.display = 'block';
+            document.getElementById('coupon-text').innerText = coupons[Math.floor(Math.random()*coupons.length)];
+            confetti({ particleCount: 150, spread: 70 });
+        }
+        function continueQuiz() { document.getElementById('quiz-container').style.display = 'block'; document.getElementById('reward-display').style.display = 'none'; loadQuestion(); }
+            function openQuiz() { 
+            shuffleArray(questions); // Shuffles the list whenever she clicks the button
+            currentQ = 0;           // Reset to the first question of the new random list
+            score = 0;             // Optional: reset score if you want her to earn new coupons
+            document.getElementById('quiz-overlay').style.display = 'flex'; 
+            loadQuestion(); 
+        }
+        function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function toggleMusic() {
+            const a = document.getElementById("myAudio");
+            if (a.paused) { a.play(); document.querySelector('.music-btn').innerText = "⏸ Pause Music"; }
+            else { a.pause(); document.querySelector('.music-btn').innerText = "▶ Play Our Song"; }
+        }
+        function startSlider() {
+            const slides = document.querySelectorAll('.slide');
+            let currentSlide = 0;
+            if(slides.length > 0) {
+                setInterval(() => {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    slides[currentSlide].classList.add('active');
+                }, 4000);
+            }
+        }
+        function updateCounter() {
+            const start = new Date(2025, 3, 17); 
+            const days = Math.floor((new Date() - start) / 86400000);
+            document.getElementById('day-counter').innerText = days + " days in our story";
+        }
+
+        window.onload = () => { displayLove(); updateCounter(); startSlider(); setInterval(updateTimer, 1000); updateTimer(); };
+        // Function to set the red notification dot
+    async function showBadge() {
+        if ('setAppBadge' in navigator) {
+            try {
+                await navigator.setAppBadge(1); // This shows the '1'
+            } catch (e) { console.log("Badge error", e); }
         }
     }
-    function updateCounter() {
-        const start = new Date(2025, 3, 17); 
-        const days = Math.floor((new Date() - start) / 86400000);
-        document.getElementById('day-counter').innerText = days + " days in our story";
+
+    // Run the badge function when the page loads
+    window.addEventListener('load', () => {
+        showBadge();
+    });
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+    }
+    // CHANGE THIS NUMBER whenever you make a new update!
+    const currentUpdateId = "2"; 
+
+    const modal = document.getElementById("updateModal");
+    const btn = document.getElementById("updateBtn");
+    const span = document.getElementById("closeModal");
+    const badge = document.getElementById("badge");
+
+    // Check if she has already seen this specific update
+    window.addEventListener('load', () => {
+        const lastSeenUpdate = localStorage.getItem("lastSeenUpdate");
+        
+        if (lastSeenUpdate === currentUpdateId) {
+            badge.style.display = "none"; // Hide it if she's seen it
+        } else {
+            badge.style.display = "block"; // Show it if it's new
+        }
+    });
+
+    // When she clicks the button
+    btn.onclick = function() {
+        modal.style.display = "block";
+        
+        // Mark this update as "seen" in her phone's memory
+        localStorage.setItem("lastSeenUpdate", currentUpdateId);
+        
+        // Hide the red dot immediately
+        badge.style.display = "none";
     }
 
-    window.onload = () => { displayLove(); updateCounter(); startSlider(); setInterval(updateTimer, 1000); updateTimer(); };
-    // Function to set the red notification dot
-async function showBadge() {
-    if ('setAppBadge' in navigator) {
-        try {
-            await navigator.setAppBadge(1); // This shows the '1'
-        } catch (e) { console.log("Badge error", e); }
+    // Close modal logic
+    span.onclick = () => modal.style.display = "none";
+    window.onclick = (event) => {
+        if (event.target == modal) modal.style.display = "none";
     }
-}
-
-// Run the badge function when the page loads
-window.addEventListener('load', () => {
-    showBadge();
-});
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-// CHANGE THIS NUMBER whenever you make a new update!
-const currentUpdateId = "2"; 
-
-const modal = document.getElementById("updateModal");
-const btn = document.getElementById("updateBtn");
-const span = document.getElementById("closeModal");
-const badge = document.getElementById("badge");
-
-// Check if she has already seen this specific update
-window.addEventListener('load', () => {
-    const lastSeenUpdate = localStorage.getItem("lastSeenUpdate");
-    
-    if (lastSeenUpdate === currentUpdateId) {
-        badge.style.display = "none"; // Hide it if she's seen it
-    } else {
-        badge.style.display = "block"; // Show it if it's new
-    }
-});
-
-// When she clicks the button
-btn.onclick = function() {
-    modal.style.display = "block";
-    
-    // Mark this update as "seen" in her phone's memory
-    localStorage.setItem("lastSeenUpdate", currentUpdateId);
-    
-    // Hide the red dot immediately
-    badge.style.display = "none";
-}
-
-// Close modal logic
-span.onclick = () => modal.style.display = "none";
-window.onclick = (event) => {
-    if (event.target == modal) modal.style.display = "none";
-}
-</script>
-<div class="decor" style="top: 10%; right: 40%; font-size: 2rem;">🌸</div>
-<div class="decor" style="top: 45%; left: 2%; font-size: 1.5rem;">💖</div>
-<div class="decor" style="bottom: 15%; left: 15%; font-size: 2.5rem;">🌷</div>
-<div class="decor" style="top: 90%; right: 40%; font-size: 2rem;">🌸</div>
-<div class="decor" style="top: 65%; left: 2%; font-size: 1.5rem;">💖</div>
-<div class="decor" style="bottom: 85%; left: 15%; font-size: 2.5rem;">🌷</div>
-</body>
-</html>
+    </script>
+    <div class="decor" style="top: 10%; right: 40%; font-size: 2rem;">🌸</div>
+    <div class="decor" style="top: 45%; left: 2%; font-size: 1.5rem;">💖</div>
+    <div class="decor" style="bottom: 15%; left: 15%; font-size: 2.5rem;">🌷</div>
+    <div class="decor" style="top: 90%; right: 40%; font-size: 2rem;">🌸</div>
+    <div class="decor" style="top: 65%; left: 2%; font-size: 1.5rem;">💖</div>
+    <div class="decor" style="bottom: 85%; left: 15%; font-size: 2.5rem;">🌷</div>
+    </body>
+    </html>
